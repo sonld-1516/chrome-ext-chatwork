@@ -1,0 +1,17 @@
+.new_button {
+  box-sizing: border-box;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  background-color: transparent;
+  fill: rgb(42, 71, 127);
+  border: none;
+  height: 32px;
+  font-size: 12px;
+}
+
+.new_button:hover {
+  background-color: rgba(204, 223, 245, 0.5);
+  fill: rgb(46, 81, 144);
+}
