@@ -30,6 +30,7 @@ var title_tag = {
 
 $(document).ready(function() {
   var chat_send_tool = $("#_chatSendArea ul").first();
+
   chat_send_tool.append($("<button>", title_tag)); // Add title button tag
   chat_send_tool.append($("<button>", info_tag)); // Add info button tag
   chat_send_tool.append($("<button>", code_tag)); // Add code buton tag
@@ -54,6 +55,16 @@ $(document).ready(function() {
     var selectedString = old.substring(start_pos, end_pos);
     var tag = "[" + type + "]" + selectedString + "[/" + type + "]";
     var content = old.substring(0, start_pos) + tag + old.substring(end_pos, old.length);
+    var selectionStart = (old.substring(0, start_pos) + "[" + type + "]");
+    var selectionEnd = (selectionStart + selectedString).length;
+
     chat_text.val(content);
+
+    if (selectedString.length === 0) {
+      chat_text[0].selectionStart = selectionEnd;
+      chat_text[0].selectionEnd = selectionEnd;
+    } else chat_text[0].setSelectionRange(selectionStart.length, selectionEnd);
+
+    chat_text.focus();
   }
 });
