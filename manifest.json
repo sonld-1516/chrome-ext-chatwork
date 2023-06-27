@@ -38,7 +38,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["js/lib/jquery-3.7.0.min.js", "js/foreground.js", "js/content.js"],
+      "resources": ["js/lib/jquery-3.7.0.min.js", "js/foreground.js", "js/lib/caretposition.js", "js/lib/fuse.min.js", "js/content.js"],
       "matches": ["<all_urls>"]
     }
   ]
