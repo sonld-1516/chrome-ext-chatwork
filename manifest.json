@@ -10,7 +10,7 @@
     "128": "./images/icon-128x128.png"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "js/background.js"
   },
   "action": {
     "default_popup": "./popup.html",
@@ -31,9 +31,15 @@
   ],
   "content_scripts": [
     {
-      "js": ["jquery-3.7.0.min.js", "foreground.js"],
+      "js": ["js/lib/jquery-3.7.0.min.js", "js/foreground.js"],
       "matches": ["http://chatwork.com/*"],
-      "run_at": "document_idle"
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["js/lib/jquery-3.7.0.min.js", "js/foreground.js", "js/content.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
