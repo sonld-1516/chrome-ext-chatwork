@@ -66,5 +66,5 @@ $(document).ready(function() {
     } else chat_text[0].setSelectionRange(selectionStart.length, selectionEnd);
 
     chat_text.focus();
-  }
+  };
 });
