@@ -1,6 +1,6 @@
 var info_tag = {
   id: "infoTag",
-  class: "sc-gmgFlS new_button _showDescription",
+  class: "sc-gmgFlS CWPlus__tag-button _showDescription",
   attr: {
     "role": "button",
     "aria-label": "Add info tag"
@@ -10,7 +10,7 @@ var info_tag = {
 
 var code_tag = {
   id: "codeTag",
-  class: "sc-gmgFlS new_button _showDescription",
+  class: "sc-gmgFlS CWPlus__tag-button _showDescription",
   attr: {
     "role": "button",
     "aria-label": "Add code tag"
@@ -20,7 +20,7 @@ var code_tag = {
 
 var title_tag = {
   id: "titleTag",
-  class: "sc-gmgFlS new_button _showDescription",
+  class: "sc-gmgFlS CWPlus__tag-button _showDescription",
   attr: {
     "role": "button",
     "aria-label": "Add title tag"
@@ -28,12 +28,18 @@ var title_tag = {
   html: "<strong>[title]</strong>"
 }
 
+function isTagAdded() {
+  return $(".CWPlus__tag-button").length > 0;
+}
+
 $(document).ready(function() {
   var chat_send_tool = $("#_chatSendArea ul").first();
 
-  chat_send_tool.append($("<button>", title_tag)); // Add title button tag
-  chat_send_tool.append($("<button>", info_tag)); // Add info button tag
-  chat_send_tool.append($("<button>", code_tag)); // Add code buton tag
+  if (!isTagAdded()) {
+    chat_send_tool.append($("<button>", title_tag)); // Add title button tag
+    chat_send_tool.append($("<button>", info_tag)); // Add info button tag
+    chat_send_tool.append($("<button>", code_tag)); // Add code buton tag
+  }
 
   $("#infoTag").click(function() {
     setSuggestedChatTag("info");

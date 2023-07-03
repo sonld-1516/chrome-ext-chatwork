@@ -1,4 +1,4 @@
-.new_button {
+.CWPlus__tag-button {
   box-sizing: border-box;
   padding: 8px;
   border-radius: 4px;
@@ -9,9 +9,9 @@
   border: none;
   height: 32px;
   font-size: 12px;
-}
 
-.new_button:hover {
-  background-color: rgba(204, 223, 245, 0.5);
-  color: rgb(46, 81, 144);
+  &:hover {
+    background-color: rgba(204, 223, 245, 0.5);
+    color: rgb(46, 81, 144);
+  }
 }
