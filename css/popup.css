@@ -1,0 +1,52 @@
+body {
+  width: 250px;
+  background-color: #eee;
+  font-family: sans-serif;
+}
+
+.CW-Plus-container {
+  padding: 10px;
+}
+
+.CW-Plus-container > .header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.CW-Plus-container > .header > .ex-name {
+  font-size: 30px;
+}
+
+.for-chatwork {
+  display: flex;
+  align-items: center;
+  color: #fff;
+  background-color: #13202F;
+  padding: 3px;
+  border-radius: 4px;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.ex-info, .ex-features {
+  margin-top: 10px;
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+
+.new-label {
+  margin-left: 5px;
+  color: white;
+  background-color: #03bcfc;
+  font-weight: bold;
+  font-size: 13px;
+  border-radius: 3px;
+  padding: 1px 5px;
+  line-height: normal;
+}
+
+.version-text {
+  color: green;
+}

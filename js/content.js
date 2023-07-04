@@ -470,7 +470,7 @@ function setUpMention() {
     }
   });
 
-  chat_text.blur(() => hideMentionBox());
+  // chat_text.blur(() => hideMentionBox());
 }
 
 // http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
@@ -488,4 +488,5 @@ if (!String.prototype.format) {
 
 $(document).ready(function() {
   setUpMention();
+  $('#_headerSearch, #_sideContent, #_subContentArea, #_sideContent, #_globalHeader, #_roomHeader, #_timeLine').click(() => hideMentionBox());
 });
