@@ -11,7 +11,7 @@
   font-size: 12px;
 }
 
-.CWPlus__tag-button:hover {
+.CWPlus__tag-button:hover, #_externalEmoticonsButton:hover {
   background-color: rgba(204, 223, 245, 0.5);
   color: rgb(46, 81, 144);
 }
