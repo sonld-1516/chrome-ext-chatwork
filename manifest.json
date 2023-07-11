@@ -24,21 +24,31 @@
   "permissions": [
     "activeTab",
     "tabs",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
       "https://www.chatwork.com/*"
   ],
   "content_scripts": [
     {
-      "js": ["js/lib/jquery-3.7.0.min.js", "js/foreground.js"],
+      "js": ["js/lib/jquery-3.7.0.min.js"],
       "matches": ["http://chatwork.com/*"],
       "run_at": "document_end"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["js/lib/jquery-3.7.0.min.js", "js/foreground.js", "js/lib/caretposition.js", "js/lib/fuse.min.js", "js/content.js"],
+      "resources": [
+        "js/lib/jquery-3.7.0.min.js",
+        "js/lib/caretposition.js",
+        "js/settings/emoticons.js",
+        "js/lib/fuse.min.js",
+        "js/helpers/storage.js",
+        "js/mention.js",
+        "js/emoticon.js",
+        "js/insertTag.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

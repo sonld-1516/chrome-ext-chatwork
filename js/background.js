@@ -8,8 +8,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       console.log("INJECTED THE FOREGROUND STYLES.");
 
       chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ["js/lib/jquery-3.7.0.min.js", "js/foreground.js", "js/inject.js"]
+        target: { tabId: tabId},
+        files: ["js/lib/jquery-3.7.0.min.js", "js/inject.js"]
       })
       .then(() => {
         console.log("OK");
