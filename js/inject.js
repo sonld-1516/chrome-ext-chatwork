@@ -1,5 +1,5 @@
 var delayTime = 3000;
-var CW_PLUS_VERSION = '2.0.0';
+var CW_PLUS_VERSION = '2.0.1';
 
 function CWPlusInjectScript(src) {
   let script = document.createElement('script');
@@ -54,9 +54,11 @@ function init() {
 function addInjectedScript() {
   CWPlusInjectScript('js/lib/caretposition.js');
   CWPlusInjectScript('js/lib/fuse.min.js');
-  CWPlusInjectScript('js/emoticon.js');
+  setTimeout(() => {
+    CWPlusInjectScript('js/emoticon.js');
+    CWPlusInjectScript('js/insertTag.js');
+  }, 200)
   CWPlusInjectScript('js/mention.js');
-  CWPlusInjectScript('js/insertTag.js');
 }
 
 function getData(info) {

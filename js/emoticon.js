@@ -74,6 +74,7 @@ function applyEmoticonsByModifyingDOM() {
   let observer = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
       let nodes = Array.from(mutation.addedNodes);
+
       for (let node of nodes) {
         if (!node.className) {
             continue;
@@ -94,9 +95,10 @@ function applyEmoticons(node) {
       const text_node_content = text_node.textContent;
       let replacement = applyReplacement(text_node_content);
       let txt = document.createElement('span');
-
       txt.innerHTML = replacement;
-      text_node.replaceWith(txt);
+      text_node.parentNode.insertBefore(txt, text_node);
+      text_node.parentNode.removeChild(text_node);
+      // text_node.replaceWith(txt);
   }
 }
 
@@ -261,7 +263,6 @@ function addExternalEmoList(bind_event) {
   );
 
   let arrayDataName = [];
-  let sorted_emoticons = this.sorted_emoticons;
 
   sorted_emoticons.forEach((emo) => {
     if (arrayDataName.indexOf(emo.data_name) == -1) {
