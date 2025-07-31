@@ -1,7 +1,7 @@
 {
   "name": "CW Plus for Chatwork",
   "description": "Chrome Extension for chatwork",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "manifest_version": 3,
   "icons": {
     "16": "./images/icon-16x16.png",
@@ -45,7 +45,7 @@
         "js/settings/emoticons.js",
         "js/lib/fuse.min.js",
         "js/helpers/storage.js",
-        "js/mention.js",
+        // "js/mention.js",
         "js/emoticon.js",
         "js/insertTag.js"
       ],
