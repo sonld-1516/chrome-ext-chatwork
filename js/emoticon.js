@@ -70,7 +70,7 @@ function textNodesUnder(node) {
 
 function applyEmoticonsByModifyingDOM() {
   window.nodes = [];
-  const single_chat_elm_class_name = '_message';
+  const message_selectors = ['_message', '_chatMessage', 'chatMessage', 'timeline_message'];
 
   // Disconnect existing observer if any
   if (window.emoticonMutationObserver) {
@@ -79,23 +79,50 @@ function applyEmoticonsByModifyingDOM() {
 
   window.emoticonMutationObserver = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
+      if (mutation.type !== 'childList') return;
+
       let nodes = Array.from(mutation.addedNodes);
 
       for (let node of nodes) {
-        if (!node.className) {
-            continue;
+        // Skip non-element nodes
+        if (node.nodeType !== 1) continue;
+
+        const nodeClassName = node.className || '';
+
+        // Check if node itself is a message
+        const isMessageNode = message_selectors.some(selector =>
+          nodeClassName.indexOf(selector) > -1
+        );
+
+        if (isMessageNode) {
+          let message_node = node.getElementsByTagName("PRE");
+          if (message_node.length > 0) {
+            applyEmoticons(message_node[0]);
+          }
+        } else {
+          // Also check for message nodes within this node
+          message_selectors.forEach(selector => {
+            const messageNodes = node.querySelectorAll ? node.querySelectorAll(`.${selector}`) : [];
+            messageNodes.forEach(msgNode => {
+              let preElements = msgNode.getElementsByTagName("PRE");
+              if (preElements.length > 0) {
+                applyEmoticons(preElements[0]);
+              }
+            });
+          });
         }
-        if (node.className.indexOf(single_chat_elm_class_name) > -1) {
-            let message_node = node.getElementsByTagName("PRE");
-            message_node.length && applyEmoticons(message_node[0]);
-        }
-      };
+      }
     });
   });
 
-  window.emoticonMutationObserver.observe(document.documentElement, {
+  // Observe the timeline container specifically, with fallback to document
+  const observeTarget = document.getElementById('_timeLine') || document.documentElement;
+
+  window.emoticonMutationObserver.observe(observeTarget, {
     childList: true,
-    subtree: true
+    subtree: true,
+    attributes: false, // Don't need attribute changes
+    characterData: false // Don't need text changes
   });
 }
 
@@ -191,7 +218,11 @@ function applyEmoticonsAccessDOM() {
   if (!messages) return false;
 
   for (let message of messages) {
-    applyEmoticons(message);
+    // Only apply if not already processed
+    if (!message.hasAttribute('data-emoticons-applied')) {
+      applyEmoticons(message);
+      message.setAttribute('data-emoticons-applied', 'true');
+    }
   }
 }
 
@@ -743,6 +774,27 @@ function setUpEmoticon(params) {
   applyEmoticonsAccessDOM();
   applyEmoticonsByModifyingDOM();
   addStyle();
+
+  // Monitor chat submissions to catch user's own messages
+  monitorChatSubmission();
+
+  // Set up periodic check to ensure MutationObserver is active
+  if (window.cwPlusObserverCheck) {
+    clearInterval(window.cwPlusObserverCheck);
+  }
+
+  window.cwPlusObserverCheck = setInterval(() => {
+    ensureMutationObserverActive();
+  }, 10000); // Check every 10 seconds
+
+  // Also check when window regains focus
+  window.addEventListener('focus', () => {
+    setTimeout(() => {
+      ensureMutationObserverActive();
+      // Force apply to any unprocessed messages
+      applyEmoticonsAccessDOM();
+    }, 1000);
+  });
 }
 
 $(document).ready(function() {
@@ -754,4 +806,81 @@ function resetEmoticonCache() {
   window.cwPlusEmoticonCache = null;
   window.cwPlusEventsBound = false;
   chatppEmoticonsInitialized = false;
+
+  // Clean up intervals and observers
+  if (window.cwPlusObserverCheck) {
+    clearInterval(window.cwPlusObserverCheck);
+    window.cwPlusObserverCheck = null;
+  }
+
+  if (window.emoticonMutationObserver) {
+    window.emoticonMutationObserver.disconnect();
+    window.emoticonMutationObserver = null;
+  }
+
+  // Clear all emoticon processing markers
+  document.querySelectorAll('[data-emoticons-applied]').forEach(el => {
+    el.removeAttribute('data-emoticons-applied');
+  });
+}
+
+// Function to ensure MutationObserver is always working
+function ensureMutationObserverActive() {
+  // Check if observer is still connected
+  if (!window.emoticonMutationObserver) {
+    applyEmoticonsByModifyingDOM();
+    return;
+  }
+
+  // Test if observer is working by checking if it's connected
+  try {
+    const timeline = document.getElementById('_timeLine');
+    if (timeline && !document.contains(timeline)) {
+      applyEmoticonsByModifyingDOM();
+    }
+  } catch (error) {
+    applyEmoticonsByModifyingDOM();
+  }
+}
+
+// Monitor for chat text submissions to catch user's own messages
+function monitorChatSubmission() {
+  const chatText = document.getElementById('_chatText');
+  const sendButton = document.querySelector('[data-tips="Send message"]');
+
+  if (chatText) {
+    // Monitor for Enter key press
+    chatText.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        setTimeout(() => {
+          // Force apply emoticons to any new messages
+          const timeline = document.getElementById('_timeLine');
+          if (timeline) {
+            const messages = timeline.getElementsByTagName('PRE');
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage && !lastMessage.hasAttribute('data-emoticons-applied')) {
+              applyEmoticons(lastMessage);
+              lastMessage.setAttribute('data-emoticons-applied', 'true');
+            }
+          }
+        }, 500); // Wait for message to be added to DOM
+      }
+    });
+  }
+
+  if (sendButton) {
+    sendButton.addEventListener('click', function() {
+      setTimeout(() => {
+        const timeline = document.getElementById('_timeLine');
+        if (timeline) {
+          const messages = timeline.getElementsByTagName('PRE');
+          const lastMessage = messages[messages.length - 1];
+          if (lastMessage && !lastMessage.hasAttribute('data-emoticons-applied')) {
+            applyEmoticons(lastMessage);
+            lastMessage.setAttribute('data-emoticons-applied', 'true');
+          }
+        }
+      }, 500);
+    });
+  }
 }
