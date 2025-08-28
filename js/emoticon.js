@@ -79,37 +79,79 @@ function applyEmoticonsByModifyingDOM() {
 
   window.emoticonMutationObserver = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
-      if (mutation.type !== 'childList') return;
+      if (mutation.type === 'childList') {
+        // Handle new nodes being added
+        let nodes = Array.from(mutation.addedNodes);
 
-      let nodes = Array.from(mutation.addedNodes);
+        for (let node of nodes) {
+          // Skip non-element nodes
+          if (node.nodeType !== 1) continue;
 
-      for (let node of nodes) {
-        // Skip non-element nodes
-        if (node.nodeType !== 1) continue;
+          const nodeClassName = node.className || '';
 
-        const nodeClassName = node.className || '';
+          // Check if node itself is a message
+          const isMessageNode = message_selectors.some(selector =>
+            nodeClassName.indexOf(selector) > -1
+          );
 
-        // Check if node itself is a message
-        const isMessageNode = message_selectors.some(selector =>
-          nodeClassName.indexOf(selector) > -1
-        );
-
-        if (isMessageNode) {
-          let message_node = node.getElementsByTagName("PRE");
-          if (message_node.length > 0) {
-            applyEmoticons(message_node[0]);
-          }
-        } else {
-          // Also check for message nodes within this node
-          message_selectors.forEach(selector => {
-            const messageNodes = node.querySelectorAll ? node.querySelectorAll(`.${selector}`) : [];
-            messageNodes.forEach(msgNode => {
-              let preElements = msgNode.getElementsByTagName("PRE");
-              if (preElements.length > 0) {
-                applyEmoticons(preElements[0]);
-              }
+          if (isMessageNode) {
+            let message_node = node.getElementsByTagName("PRE");
+            if (message_node.length > 0) {
+              applyEmoticons(message_node[0]);
+            }
+          } else {
+            // Also check for message nodes within this node
+            message_selectors.forEach(selector => {
+              const messageNodes = node.querySelectorAll ? node.querySelectorAll(`.${selector}`) : [];
+              messageNodes.forEach(msgNode => {
+                let preElements = msgNode.getElementsByTagName("PRE");
+                if (preElements.length > 0) {
+                  applyEmoticons(preElements[0]);
+                }
+              });
             });
-          });
+          }
+        }
+      } else if (mutation.type === 'characterData' || mutation.type === 'attributes') {
+        // Handle text changes (like editing messages)
+        let targetNode = mutation.target;
+
+        // Find the closest message container
+        let messageContainer = targetNode;
+        while (messageContainer && messageContainer.nodeType === 3) {
+          messageContainer = messageContainer.parentNode;
+        }
+
+        if (messageContainer) {
+          // Look for PRE elements that might contain the edited content
+          let preElements = [];
+
+          if (messageContainer.tagName === 'PRE') {
+            preElements = [messageContainer];
+          } else {
+            preElements = Array.from(messageContainer.getElementsByTagName("PRE"));
+          }
+
+          // Check if this is within a message container
+          let currentNode = messageContainer;
+          let isInMessage = false;
+          while (currentNode && currentNode !== document.body) {
+            const nodeClassName = currentNode.className || '';
+            if (message_selectors.some(selector => nodeClassName.indexOf(selector) > -1)) {
+              isInMessage = true;
+              break;
+            }
+            currentNode = currentNode.parentNode;
+          }
+
+          if (isInMessage && preElements.length > 0) {
+            preElements.forEach(preElement => {
+              // Remove the applied marker to force re-application
+              preElement.removeAttribute('data-emoticons-applied');
+              applyEmoticons(preElement);
+              preElement.setAttribute('data-emoticons-applied', 'true');
+            });
+          }
         }
       }
     });
@@ -121,21 +163,54 @@ function applyEmoticonsByModifyingDOM() {
   window.emoticonMutationObserver.observe(observeTarget, {
     childList: true,
     subtree: true,
-    attributes: false, // Don't need attribute changes
-    characterData: false // Don't need text changes
+    attributes: true, // Watch for attribute changes (like contenteditable)
+    characterData: true, // Watch for text content changes
+    attributeFilter: ['contenteditable', 'class'] // Only watch specific attributes
   });
 }
 
 function applyEmoticons(node) {
+  // First, clean up any existing emoticon spans to avoid duplicates
+  const existingEmoticons = node.querySelectorAll('img.CWPlus_emoticon');
+  existingEmoticons.forEach(img => {
+    // Replace emoticon image back with original text
+    const originalText = img.getAttribute('alt') || img.getAttribute('data-cwtag');
+    if (originalText) {
+      const textNode = document.createTextNode(originalText);
+      img.parentNode.replaceChild(textNode, img);
+    }
+  });
+
+  // Also clean up any spans that might wrap emoticons
+  const spans = node.querySelectorAll('span');
+  spans.forEach(span => {
+    // If span only contains emoticon images, unwrap it
+    const images = span.querySelectorAll('img.CWPlus_emoticon');
+    if (images.length > 0 && span.childNodes.length === images.length) {
+      // Move all child nodes out of the span
+      while (span.firstChild) {
+        span.parentNode.insertBefore(span.firstChild, span);
+      }
+      span.remove();
+    }
+  });
+
+  // Normalize text nodes after cleanup
+  node.normalize();
+
+  // Now apply emoticons to clean text
   const all_text_nodes = textNodesUnder(node);
   for (const text_node of all_text_nodes) {
       const text_node_content = text_node.textContent;
-      let replacement = applyReplacement(text_node_content);
-      let txt = document.createElement('span');
-      txt.innerHTML = replacement;
-      text_node.parentNode.insertBefore(txt, text_node);
-      text_node.parentNode.removeChild(text_node);
-      // text_node.replaceWith(txt);
+      if (text_node_content.trim()) { // Only process non-empty text
+        let replacement = applyReplacement(text_node_content);
+        if (replacement !== text_node_content) { // Only replace if there are actual emoticons
+          let txt = document.createElement('span');
+          txt.innerHTML = replacement;
+          text_node.parentNode.insertBefore(txt, text_node);
+          text_node.parentNode.removeChild(text_node);
+        }
+      }
   }
 }
 
@@ -419,7 +494,7 @@ function addExternalEmoList(bind_event) {
         } else {
           // Ensure triangle is for top position
           tooltip.find('._cwTTTriangle').removeClass('toolTipTriangleWhiteBottom').addClass('toolTipTriangleWhiteTop');
-          tooltip.find('._cwTTriangle').css('left', triangleLeft + 'px');
+          tooltip.find('._cwTTTriangle').css('left', triangleLeft + 'px');
         }
 
         // Center tooltip relative to button
@@ -778,6 +853,9 @@ function setUpEmoticon(params) {
   // Monitor chat submissions to catch user's own messages
   monitorChatSubmission();
 
+  // Monitor message edit events
+  monitorMessageEdits();
+
   // Set up periodic check to ensure MutationObserver is active
   if (window.cwPlusObserverCheck) {
     clearInterval(window.cwPlusObserverCheck);
@@ -883,4 +961,75 @@ function monitorChatSubmission() {
       }, 500);
     });
   }
+}
+
+// Monitor for message edit events
+function monitorMessageEdits() {
+  // Listen for clicks on edit buttons
+  document.addEventListener('click', function(e) {
+    // Check if clicked element is an edit button
+    if (e.target && (
+        e.target.matches('[data-tips="Edit message"]') ||
+        e.target.matches('.editMessage') ||
+        e.target.closest('[data-tips="Edit message"]') ||
+        e.target.closest('.editMessage')
+    )) {
+      // Wait for edit mode to be activated
+      setTimeout(() => {
+        // Find all contenteditable elements (edit mode)
+        const editableElements = document.querySelectorAll('[contenteditable="true"]');
+        editableElements.forEach(element => {
+          // Check if this is a message edit element
+          if (element.closest('._message') || element.closest('._chatMessage') ||
+              element.closest('.chatMessage') || element.closest('.timeline_message')) {
+
+            // Monitor for when editing is finished
+            const handleEditFinish = () => {
+              setTimeout(() => {
+                // Find the parent message container
+                const messageContainer = element.closest('._message') ||
+                                       element.closest('._chatMessage') ||
+                                       element.closest('.chatMessage') ||
+                                       element.closest('.timeline_message');
+
+                if (messageContainer) {
+                  const preElements = messageContainer.getElementsByTagName('PRE');
+                  if (preElements.length > 0) {
+                    Array.from(preElements).forEach(preElement => {
+                      preElement.removeAttribute('data-emoticons-applied');
+                      applyEmoticons(preElement);
+                      preElement.setAttribute('data-emoticons-applied', 'true');
+                    });
+                  }
+                }
+              }, 300);
+            };
+
+            // Listen for various events that indicate edit completion
+            element.addEventListener('blur', handleEditFinish, { once: true });
+            element.addEventListener('keydown', function(e) {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                handleEditFinish();
+              }
+            }, { once: true });
+          }
+        });
+      }, 200);
+    }
+  });
+
+  // Also monitor for save button clicks
+  document.addEventListener('click', function(e) {
+    if (e.target && (
+        e.target.matches('[data-tips="Save"]') ||
+        e.target.matches('.saveEdit') ||
+        e.target.closest('[data-tips="Save"]') ||
+        e.target.closest('.saveEdit')
+    )) {
+      setTimeout(() => {
+        // Re-apply emoticons to all messages after save
+        applyEmoticonsAccessDOM();
+      }, 500);
+    }
+  });
 }
