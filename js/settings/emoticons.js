@@ -1619,7 +1619,8 @@ var emoticon_settings = [
 	  {"key": "(hello)", "src": "https://i.imgur.com/VZS6Uv8.gif?1"},
     {"key": "(que)", "src": "https://i.imgur.com/bBLCkqW.png"},
     {"key": "(tingting)", "src": "https://i.imgur.com/aYcqXmA.jpg"},
-    {"key": "(que2)", "src": "https://i.imgur.com/5oAJvs8.jpg"}
+    {"key": "(que2)", "src": "https://i.imgur.com/5oAJvs8.jpg"},
+    {"key": "(sondeptrai)", "src": "https://i.imgur.com/wHzzLqY.png"},
     ]
   }
 ];
