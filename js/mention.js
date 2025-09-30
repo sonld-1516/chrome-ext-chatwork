@@ -8,7 +8,6 @@ var selected_index = 0;
 var is_outbound_of_list = false;
 var insert_type = '';
 var insert_mode = 'normal';
-var cached_enter_action = ST.data.enter_action;
 var DISPLAY_NUMS = 3;
 var SPECIAL_CHARS = ["\n", "!", "$", "%", "^", "&", "*", "(", ")", "-", "+", "=", "[", "]", "{", "}", ";", ":", ",", "/", "`", "'", "\""];
 var MAX_PATTERN_LENGTH = 20;
@@ -19,7 +18,8 @@ function htmlEncode(value) {
 }
 
 function getMemberObject(member) {
-  let h = CW.is_business && ST.data.private_nickname && !RM.isInternal() ? AC.getDefaultNickName(member) : AC.getNickName(member);
+  // let h = CW.is_business && ST.data.private_nickname && !RM.isInternal() ? AC.getDefaultNickName(member) : AC.getNickName(member);
+  let h = AC.getNickName(member);
 
   return {
     value: member,
@@ -122,11 +122,6 @@ function clearnUp() {
   insert_mode = 'normal';
   is_inserted = false;
   $("#suggestion-container").html("");
-
-  // restore setting to correct value
-  if (cached_enter_action != ST.data.enter_action && cached_enter_action == "send") {
-    ST.data.enter_action = cached_enter_action;
-  }
 }
 
 // http://blog.vishalon.net/index.php/javascript-getting-and-setting-caret-position-in-textarea/
@@ -370,6 +365,15 @@ function setUpMention() {
 
   chat_text.click(() => hideMentionBox());
 
+  // Additional prevention for Enter key when mention box is open
+  chat_text.on("keypress", function(e) {
+    if (e.which == 13 && isDisplayMentionBox) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  });
+
   chat_text.on("keyup", function(e) {
     if (e.which == 9 || e.which == 13) {
       return;
@@ -447,19 +451,20 @@ function setUpMention() {
     }
 
     if (e.which == 9 || e.which == 13) {
-      if ($(".suggested-name").first().length) {
+      if (isDisplayMentionBox && $(".suggested-name").first().length) {
+        // Prevent default behavior (sending message)
+        e.preventDefault();
+        e.stopPropagation();
+
         if (is_navigated) {
           $(".suggested-name").eq(selected_index).click();
         } else {
           $(".suggested-name").first().click();
         }
-        // dirty hack to prevent message to be sent
-        if (cached_enter_action == "send") {
-          ST.data.enter_action = "br";
-        }
-        e.preventDefault();
-      } else {
-        // there's no thing after @ symbol
+
+        return false; // Extra protection
+      } else if (isDisplayMentionBox) {
+        // Mention box is open but no suggestions, just hide it and allow normal Enter
         hideMentionBox();
       }
     }
@@ -489,4 +494,13 @@ if (!String.prototype.format) {
 $(document).ready(function() {
   setUpMention();
   $('#_headerSearch, #_sideContent, #_subContentArea, #_sideContent, #_globalHeader, #_roomHeader, #_timeLine').click(() => hideMentionBox());
+
+  // Additional protection: prevent form submission when mention box is open
+  $(document).on('submit', 'form', function(e) {
+    if (isDisplayMentionBox) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  });
 });
