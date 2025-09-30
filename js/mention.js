@@ -358,15 +358,28 @@ function isTriggerKeyCode(keyCode) {
 
 function setUpMention() {
   let chat_text = $("#_chatText");
+
+  // Check if chat text exists
+  if (chat_text.length === 0) {
+    // Chat text not ready yet, retry after delay
+    return false;
+  }
+
   let chat_input = chat_text.parent();
 
-  $("<div id='suggestion-container' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip'></div>").insertAfter(chat_input);
+  // Create suggestion container if not exists
+  if ($("#suggestion-container").length === 0) {
+    $("<div id='suggestion-container' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip'></div>").insertAfter(chat_input);
+  }
   hideMentionBox();
 
-  chat_text.click(() => hideMentionBox());
+  // Remove existing handlers to avoid duplicates
+  chat_text.off('click.mention keypress.mention keyup.mention keydown.mention');
+
+  chat_text.on('click.mention', () => hideMentionBox());
 
   // Additional prevention for Enter key when mention box is open
-  chat_text.on("keypress", function(e) {
+  chat_text.on("keypress.mention", function(e) {
     if (e.which == 13 && isDisplayMentionBox) {
       e.preventDefault();
       e.stopPropagation();
@@ -374,7 +387,7 @@ function setUpMention() {
     }
   });
 
-  chat_text.on("keyup", function(e) {
+  chat_text.on("keyup.mention", function(e) {
     if (e.which == 9 || e.which == 13) {
       return;
     }
@@ -441,7 +454,7 @@ function setUpMention() {
     }
   });
 
-  chat_text.on("keydown", function(e) {
+  chat_text.on("keydown.mention", function(e) {
     if ((e.which == 38 || e.which == 40 || e.which == 9 || e.which == 13) && isDisplayMentionBox) {
       is_navigated = true;
       holdCaretPosition(e);
@@ -476,6 +489,8 @@ function setUpMention() {
   });
 
   // chat_text.blur(() => hideMentionBox());
+
+  return true; // Successfully initialized
 }
 
 // http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
@@ -492,7 +507,21 @@ if (!String.prototype.format) {
 }
 
 $(document).ready(function() {
-  setUpMention();
+  // Try to setup mention immediately
+  let initialized = setUpMention();
+
+  // If not initialized (chat text not found), retry with delays
+  if (!initialized) {
+    let retryCount = 0;
+    let maxRetries = 10;
+    let retryInterval = setInterval(function() {
+      retryCount++;
+      if (setUpMention() || retryCount >= maxRetries) {
+        clearInterval(retryInterval);
+      }
+    }, 500); // Retry every 500ms
+  }
+
   $('#_headerSearch, #_sideContent, #_subContentArea, #_sideContent, #_globalHeader, #_roomHeader, #_timeLine').click(() => hideMentionBox());
 
   // Additional protection: prevent form submission when mention box is open
