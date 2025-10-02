@@ -12,6 +12,20 @@ var DISPLAY_NUMS = 3;
 var SPECIAL_CHARS = ["\n", "!", "$", "%", "^", "&", "*", "(", ")", "-", "+", "=", "[", "]", "{", "}", ";", ":", ",", "/", "`", "'", "\""];
 var MAX_PATTERN_LENGTH = 20;
 
+// Mention initialization tracking
+var mentionInitialized = false;
+var setupObserver = null;
+var retryInterval = null;
+var lastUrl = location.href;
+
+// Helper to get active textarea
+function getActiveTextArea() {
+  let fileUpload = $("#_fileUploadMessage");
+  if (fileUpload.length > 0 && (fileUpload.is(':focus') || fileUpload.is(':visible'))) {
+    return fileUpload;
+  }
+  return $("#_chatText");
+}
 
 function htmlEncode(value) {
   return $("<div/>").text(value).html();
@@ -81,14 +95,18 @@ function buildList(members) {
 }
 
 function showMentionBox(content) {
-  $("#suggestion-container").html(content).show();
-  $("#suggestion-container").css("visibility", "visible");
+  let textarea = getActiveTextArea();
+  let containerId = textarea.attr('id') === '_fileUploadMessage' ?
+    '#suggestion-container-upload' : '#suggestion-container';
+
+  $(containerId).html(content).show();
+  $(containerId).css("visibility", "visible");
   isDisplayMentionBox = true;
 
   if (is_navigated) {
-    $(".suggested-name").eq(selected_index).css("background-color", "#D8F0F9");
+    $(containerId + " .suggested-name").eq(selected_index).css("background-color", "#D8F0F9");
   } else {
-    $(".suggested-name").first().css("background-color", "#D8F0F9");
+    $(containerId + " .suggested-name").first().css("background-color", "#D8F0F9");
   }
 
   $(".suggested-name").click((e) => {
@@ -110,6 +128,8 @@ function showMentionBox(content) {
 function hideMentionBox(content) {
   $("#suggestion-container").html(content).hide();
   $("#suggestion-container").css("visibility", "hidden");
+  $("#suggestion-container-upload").html(content).hide();
+  $("#suggestion-container-upload").css("visibility", "hidden");
   clearnUp();
 }
 
@@ -122,6 +142,7 @@ function clearnUp() {
   insert_mode = 'normal';
   is_inserted = false;
   $("#suggestion-container").html("");
+  $("#suggestion-container-upload").html("");
 }
 
 // http://blog.vishalon.net/index.php/javascript-getting-and-setting-caret-position-in-textarea/
@@ -153,14 +174,15 @@ function setCaretPosition(ctrl, pos) {
 }
 
 function getNearestAtmarkIndex() {
-  let content = $("#_chatText").val();
+  let textarea = getActiveTextArea();
+  let content = textarea.val();
   let atmarks = content.match(/@/ig);
 
   if (!atmarks) {
     return -1;
   }
 
-  let caret_index = doGetCaretPosition($("#_chatText")[0]);
+  let caret_index = doGetCaretPosition(textarea[0]);
   let atmark_index = content.indexOf("@");
   let pre_atmark_index = -1;
   do {
@@ -175,10 +197,11 @@ function getNearestAtmarkIndex() {
 }
 
 function getTypedText() {
-  let content = $("#_chatText").val();
+  let textarea = getActiveTextArea();
+  let content = textarea.val();
   let start_pos = getNearestAtmarkIndex();
   if (start_pos == -1) return "";
-  let end_pos = doGetCaretPosition($("#_chatText")[0]);
+  let end_pos = doGetCaretPosition(textarea[0]);
   let txt = content.substr(start_pos, end_pos - start_pos);
   if (txt) {
     return txt;
@@ -188,7 +211,8 @@ function getTypedText() {
 }
 
 function findAtmark(params) {
-  let content = $("#_chatText").val();
+  let textarea = getActiveTextArea();
+  let content = textarea.val();
 
   // we only interested in @ symbol that: at the start of line or has a space before it
   let atmark_index = getNearestAtmarkIndex();
@@ -222,36 +246,53 @@ function findAtmark(params) {
 }
 
 function setMentionBoxPosition() {
-  let chat_text_element = $("#_chatText")[0];
-  let chat_text_jquery = $("#_chatText");
+  let textarea = getActiveTextArea();
+  let chat_text_element = textarea[0];
   let rect = chat_text_element.getBoundingClientRect();
   let current_pos = doGetCaretPosition(chat_text_element);
 
   setCaretPosition(chat_text_element, actived_atmark_index + 1);
-  let position = Measurement.caretPos(chat_text_jquery);
+  let position = Measurement.caretPos(textarea);
   // let position = {left: 295, top: 853};
   position.top -= rect.top;
   position.left -= rect.left;
 
-  if (rect.width - position.left < 236) {
-    position.left -= 236;
-  }
-  if (rect.height - position.top < 90) {
-    if (position.top < 108) {
-      $("#_chatTextArea").css({
-        "overflow-y": "visible",
-        "z-index": 2
-      });
+  // Determine which container to use based on active textarea
+  let containerId = textarea.attr('id') === '_fileUploadMessage' ?
+    '#suggestion-container-upload' : '#suggestion-container';
+
+  // Different logic for file upload modal vs main chat
+  if (textarea.attr('id') === '_fileUploadMessage') {
+    // File upload modal: always show BELOW the @ symbol
+    position.top += parseInt(textarea.css("font-size")) + 48; // Show below (positive offset)
+
+    // Handle horizontal overflow
+    if (rect.width - position.left < 236) {
+      position.left -= 236;
     }
-    position.top -= 118;
   } else {
-    position.top += parseInt(chat_text_jquery.css("font-size")) + 5;
+    // Main chat: original logic with above/below detection
+    if (rect.width - position.left < 236) {
+      position.left -= 236;
+    }
+    if (rect.height - position.top < 90) {
+      if (position.top < 108) {
+        $("#_chatTextArea").css({
+          "overflow-y": "visible",
+          "z-index": 2
+        });
+      }
+      position.top -= 118;
+    } else {
+      position.top += parseInt(textarea.css("font-size")) + 5;
+    }
   }
-  $("#suggestion-container").parent().css({
+
+  $(containerId).parent().css({
     position: "relative"
   });
 
-  $("#suggestion-container").css({
+  $(containerId).css({
     top: position.top,
     left: position.left,
     position: "absolute"
@@ -324,9 +365,9 @@ function getReplaceText(format_string, target_name, cwid, members) {
 }
 
 function setSuggestedChatText(entered_text, target_name, cwid) {
-  let chat_text_jquery = $('#_chatText');
-  let chat_text_element = chat_text_jquery[0];
-  let old = chat_text_jquery.val();
+  let textarea = getActiveTextArea();
+  let chat_text_element = textarea[0];
+  let old = textarea.val();
   let start_pos = doGetCaretPosition(chat_text_element) - entered_text.length;
   let replace_text = "";
   let members = buildMemberListData(true);
@@ -338,48 +379,32 @@ function setSuggestedChatText(entered_text, target_name, cwid) {
   }
 
   let content = old.substring(0, start_pos) + replace_text + old.substring(start_pos + entered_text.length);
-  chat_text_jquery.val(content);
+  textarea.val(content);
   setCaretPosition(chat_text_element, start_pos + replace_text.length);
   hideMentionBox();
 }
 
 function holdCaretPosition(event_object) {
   event_object.preventDefault();
-  let chat_text_jquery = $('#_chatText');
-  chat_text_jquery.focus();
-  let current_pos = doGetCaretPosition(chat_text_jquery[0]);
+  let textarea = getActiveTextArea();
+  textarea.focus();
+  let current_pos = doGetCaretPosition(textarea[0]);
 
-  setCaretPosition(chat_text_jquery[0], current_pos);
+  setCaretPosition(textarea[0], current_pos);
 }
 
 function isTriggerKeyCode(keyCode) {
   return [37, 38, 39, 40].indexOf(keyCode) == -1;
 }
 
-function setUpMention() {
-  let chat_text = $("#_chatText");
-
-  // Check if chat text exists
-  if (chat_text.length === 0) {
-    // Chat text not ready yet, retry after delay
-    return false;
-  }
-
-  let chat_input = chat_text.parent();
-
-  // Create suggestion container if not exists
-  if ($("#suggestion-container").length === 0) {
-    $("<div id='suggestion-container' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip'></div>").insertAfter(chat_input);
-  }
-  hideMentionBox();
-
+function bindMentionEvents(textarea) {
   // Remove existing handlers to avoid duplicates
-  chat_text.off('click.mention keypress.mention keyup.mention keydown.mention');
+  textarea.off('click.mention keypress.mention keyup.mention keydown.mention');
 
-  chat_text.on('click.mention', () => hideMentionBox());
+  textarea.on('click.mention', () => hideMentionBox());
 
   // Additional prevention for Enter key when mention box is open
-  chat_text.on("keypress.mention", function(e) {
+  textarea.on("keypress.mention", function(e) {
     if (e.which == 13 && isDisplayMentionBox) {
       e.preventDefault();
       e.stopPropagation();
@@ -387,7 +412,7 @@ function setUpMention() {
     }
   });
 
-  chat_text.on("keyup.mention", function(e) {
+  textarea.on("keyup.mention", function(e) {
     if (e.which == 9 || e.which == 13) {
       return;
     }
@@ -454,7 +479,7 @@ function setUpMention() {
     }
   });
 
-  chat_text.on("keydown.mention", function(e) {
+  textarea.on("keydown.mention", function(e) {
     if ((e.which == 38 || e.which == 40 || e.which == 9 || e.which == 13) && isDisplayMentionBox) {
       is_navigated = true;
       holdCaretPosition(e);
@@ -487,10 +512,40 @@ function setUpMention() {
       holdCaretPosition(e);
     }
   });
+}
 
-  // chat_text.blur(() => hideMentionBox());
+function setUpMention() {
+  let chat_text = $("#_chatText");
+  if (chat_text.length === 0) return false;
 
-  return true; // Successfully initialized
+  let chat_input = chat_text.parent();
+
+  // Remove and create container
+  $("#suggestion-container").remove();
+  $("<div id='suggestion-container' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip'></div>").insertAfter(chat_input);
+
+  hideMentionBox();
+
+  // Bind events
+  chat_text.off('.mention');
+  bindMentionEvents(chat_text);
+
+  // Watch for file upload modal
+  const observer = new MutationObserver(function() {
+    const fileUploadTextarea = $("#_fileUploadMessage");
+    if (fileUploadTextarea.length > 0 && !fileUploadTextarea.data('mention-bound')) {
+      $("#suggestion-container-upload").remove();
+
+      let fileUploadInput = fileUploadTextarea.parent();
+      $("<div id='suggestion-container-upload' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip'></div>").insertAfter(fileUploadInput);
+
+      fileUploadTextarea.data('mention-bound', true);
+      bindMentionEvents(fileUploadTextarea);
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+  return true;
 }
 
 // http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
@@ -506,25 +561,102 @@ if (!String.prototype.format) {
   };
 }
 
-$(document).ready(function() {
-  // Try to setup mention immediately
-  let initialized = setUpMention();
+function tryInitializeMention() {
+  if (mentionInitialized) return true;
 
-  // If not initialized (chat text not found), retry with delays
-  if (!initialized) {
-    let retryCount = 0;
-    let maxRetries = 10;
-    let retryInterval = setInterval(function() {
-      retryCount++;
-      if (setUpMention() || retryCount >= maxRetries) {
-        clearInterval(retryInterval);
-      }
-    }, 500); // Retry every 500ms
+  if ($("#_chatText").length === 0) return false;
+
+  if (setUpMention()) {
+    mentionInitialized = true;
+
+    // Cleanup
+    if (setupObserver) {
+      setupObserver.disconnect();
+      setupObserver = null;
+    }
+    if (retryInterval) {
+      clearInterval(retryInterval);
+      retryInterval = null;
+    }
+
+    return true;
+  }
+  return false;
+}
+
+// Simple initialization with retry
+function initializeMentionWithRetry() {
+  // Try immediately
+  if (tryInitializeMention()) return;
+
+  // MutationObserver for dynamic content
+  setupObserver = new MutationObserver(tryInitializeMention);
+  setupObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Polling fallback - stop after 30 seconds
+  let retryCount = 0;
+  retryInterval = setInterval(function() {
+    if (tryInitializeMention() || ++retryCount >= 30) {
+      clearInterval(retryInterval);
+      if (setupObserver) setupObserver.disconnect();
+    }
+  }, 1000);
+}
+
+// Lightweight watchdog - only check container
+function mentionWatchdog() {
+  if (!mentionInitialized) return;
+
+  watchdogCheckCount++;
+  if (watchdogCheckCount > watchdogMaxChecks) {
+    clearInterval(window.mentionWatchdogInterval);
+    return;
   }
 
-  $('#_headerSearch, #_sideContent, #_subContentArea, #_sideContent, #_globalHeader, #_roomHeader, #_timeLine').click(() => hideMentionBox());
+  // Only check if container is missing
+  if ($("#_chatText").length > 0 && $("#suggestion-container").length === 0) {
+    mentionInitialized = false;
+    watchdogCheckCount = 0;
+    initializeMentionWithRetry();
+  }
+}
 
-  // Additional protection: prevent form submission when mention box is open
+var watchdogCheckCount = 0;
+var watchdogMaxChecks = 5; // 5 checks × 3s = 15 giây
+window.mentionWatchdogInterval = setInterval(mentionWatchdog, 3000);
+
+// Listen for URL changes (Chatwork is SPA)
+new MutationObserver(function() {
+  const url = location.href;
+  if (url !== lastUrl) {
+    lastUrl = url;
+
+    // Reset and cleanup
+    mentionInitialized = false;
+    $("#suggestion-container, #suggestion-container-upload").remove();
+
+    if (setupObserver) setupObserver.disconnect();
+    if (retryInterval) clearInterval(retryInterval);
+    if (window.mentionWatchdogInterval) clearInterval(window.mentionWatchdogInterval);
+
+    // Restart watchdog and re-init
+    watchdogCheckCount = 0;
+    window.mentionWatchdogInterval = setInterval(mentionWatchdog, 3000);
+    setTimeout(initializeMentionWithRetry, 500);
+  }
+}).observe(document, { subtree: true, childList: true });
+
+// Initialize
+$(document).ready(initializeMentionWithRetry);
+window.addEventListener('load', function() {
+  if (!mentionInitialized) initializeMentionWithRetry();
+});
+
+// Click handlers to hide mention box
+$(document).ready(function() {
+  $('#_headerSearch, #_sideContent, #_subContentArea, #_globalHeader, #_roomHeader, #_timeLine').click(hideMentionBox);
+
+  // Prevent form submit when mention box open
   $(document).on('submit', 'form', function(e) {
     if (isDisplayMentionBox) {
       e.preventDefault();

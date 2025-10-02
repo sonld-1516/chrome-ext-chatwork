@@ -576,7 +576,7 @@ function createTooltipContainer() {
         "top": "265px",
         "left": "160px",
         "role": "tooltip",
-        "width": "350px"
+        "width": "435px"
       }
   }).append(
       $("<div>", {
@@ -593,7 +593,7 @@ function createTooltipContainer() {
           "display": "flex",
           "flex-wrap": "wrap",
           "justify-content": "center",
-          "max-width": "350px",
+          "max-width": "435px",
           "height": "450px",
           "overflow": "auto"
         }
