@@ -404,6 +404,9 @@ function insertEmoticon(key) {
 
   let newText = beforeText + key + ' ' + afterText;
   textarea.val(newText);
+  
+  // Trigger input event to let Chatwork process the emoticon
+  textarea.trigger('input');
 
   let newCaretPos = colonIndex + key.length + 1;
   setCaretPosition(textarea[0], newCaretPos);

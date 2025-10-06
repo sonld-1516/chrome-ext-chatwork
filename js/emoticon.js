@@ -284,6 +284,9 @@ function addStyle() {
   $("<style type=\"text/css\"> img.ui_emoticon {vertical-align: middle !important;}</style>").appendTo("head");
   $("<style type=\"text/css\"> img.ui_emoticon:not([src^='https://assets.chatwork']) {width: auto !important;height: auto !important; vertical-align: middle;}</style>").appendTo("head");
   $("<style type=\"text/css\"> div[data-cwtag]:not([data-cwtag='']) {width: auto !important;height: auto !important; vertical-align: middle;}</style>").appendTo("head");
+
+  // Add hover styles for emoji icon
+  $("<style id=\"cwplus-emoji-hover-styles\">#_externalEmoticonsButton:hover .cwplus-emoji-icon .emoji-bg, .cwplus-emoji-icon:hover .emoji-bg { fill: #FFB84D; } #_externalEmoticonsButton:hover .cwplus-emoji-icon .emoji-mouth-normal, .cwplus-emoji-icon:hover .emoji-mouth-normal { opacity: 0; } #_externalEmoticonsButton:hover .cwplus-emoji-icon .emoji-mouth-laugh, .cwplus-emoji-icon:hover .emoji-mouth-laugh { opacity: 1; } .cwplus-emoji-icon { transition: all 0.2s ease; } .cwplus-emoji-icon .emoji-bg, .cwplus-emoji-icon .emoji-eye, .cwplus-emoji-icon .emoji-mouth-normal, .cwplus-emoji-icon .emoji-mouth-laugh { transition: all 0.2s ease; }</style>").appendTo("head");
 }
 
 function applyEmoticonsAccessDOM() {
@@ -302,6 +305,75 @@ function applyEmoticonsAccessDOM() {
 }
 
 function addExternalEmoList(bind_event) {
+  function createSmileyButtonSVG(color = 'rgb(42, 71, 127)', size = 19) {
+    // Slack-style emoji icon with CW+ branding and hover effect
+    return `
+      <svg
+        class="cwplus-emoji-icon"
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        style="width: ${size}px; height: ${size}px; display: inline-block; vertical-align: middle; cursor: pointer;"
+      >
+        <!-- Background circle for hover fill -->
+        <circle
+          class="emoji-bg"
+          cx="12"
+          cy="12"
+          r="10"
+          fill="transparent"
+        />
+        <!-- Smiley face circle -->
+        <circle
+          class="emoji-circle"
+          cx="12"
+          cy="12"
+          r="9"
+          fill="none"
+          stroke="${color}"
+          stroke-width="2.3"
+        />
+        <!-- Left eye -->
+        <circle class="emoji-eye" cx="9" cy="10" r="1.5" fill="${color}" />
+        <!-- Right eye -->
+        <circle class="emoji-eye" cx="15" cy="10" r="1.5" fill="${color}" />
+        <!-- Normal smile (default) -->
+        <path
+          class="emoji-mouth-normal"
+          d="M8.5 13.5c0 1.5 1.5 3 3.5 3s3.5-1.5 3.5-3"
+          fill="none"
+          stroke="${color}"
+          stroke-width="2.3"
+          stroke-linecap="round"
+        />
+        <!-- Big D-shaped laugh (hidden by default, shown on hover) -->
+        <path
+          class="emoji-mouth-laugh"
+          d="M7.5 13 Q7.5 16.5 12 16.5 Q16.5 16.5 16.5 13"
+          fill="none"
+          stroke="${color}"
+          stroke-width="2.3"
+          stroke-linecap="round"
+          opacity="0"
+        />
+        <!-- CW+ Badge (top right corner) -->
+        <g transform="translate(16, 3)">
+          <!-- Badge background circle -->
+          <circle cx="3" cy="3" r="4.5" fill="#FF6B35" />
+          <!-- CW+ text -->
+          <text
+            x="3"
+            y="4.5"
+            text-anchor="middle"
+            font-family="Arial, sans-serif"
+            font-size="4"
+            font-weight="bold"
+            fill="white"
+          >CW+</text>
+        </g>
+      </svg>
+    `.trim();
+  }
+
   // Function to create the button
   function createEmoticonButton() {
     // Remove existing button if any
@@ -329,7 +401,7 @@ function addExternalEmoList(bind_event) {
       }
     })
     .append(
-      $("<span>", { id: "externalEmoticonsButton", html:"😊", css: { // 🙂😊
+      $("<span>", { id: "externalEmoticonsButton", html: createSmileyButtonSVG(), css: { // 🙂😊
         "font-size": "20px",
         "font-weight": "normal",
         "display": "inline-block",
