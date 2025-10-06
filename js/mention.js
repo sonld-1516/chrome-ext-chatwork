@@ -12,6 +12,17 @@ var DISPLAY_NUMS = 3;
 var SPECIAL_CHARS = ["\n", "!", "$", "%", "^", "&", "*", "(", ")", "-", "+", "=", "[", "]", "{", "}", ";", ":", ",", "/", "`", "'", "\""];
 var MAX_PATTERN_LENGTH = 20;
 
+// Emoticon variables
+var isDisplayEmoticonBox = false;
+var actived_colon_index = 0;
+var emoticon_is_navigated = false;
+var emoticon_is_inserted = false;
+var emoticon_current_index = 0;
+var emoticon_selected_index = 0;
+var emoticon_is_outbound_of_list = false;
+var EMOTICON_MAX_PATTERN_LENGTH = 30;
+var EMOTICON_DISPLAY_NUMS = 3;
+
 // Mention initialization tracking
 var mentionInitialized = false;
 var setupObserver = null;
@@ -144,6 +155,315 @@ function clearnUp() {
   $("#suggestion-container").html("");
   $("#suggestion-container-upload").html("");
 }
+
+// ============ EMOTICON SUGGESTION FUNCTIONS ============
+
+function buildEmoticonListData() {
+  let emoticonList = [];
+  try {
+    if (typeof emoticons !== 'undefined' && Array.isArray(emoticons) && emoticons.length > 0) {
+      // emoticons is already an array of {key, src, priority}
+      emoticonList = emoticons.filter(emo => emo.key && emo.src);
+    }
+  } catch (e) {
+    console.error('[EMOTICON] Error loading emoticons:', e);
+  }
+  return emoticonList;
+}
+
+function buildEmoticonList(emoticons) {
+  if (emoticons.length) {
+    let txt = "<ul class='emoticon-suggestion-list'>";
+    for (let i = 0; i < emoticons.length; i++) {
+      txt += `<li class="suggested-emoticon tooltipList__item" role="listitem" data-emoticon-key="${emoticons[i].key}">`;
+      txt += `<img src="${emoticons[i].src}" class="emoticon-preview" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">`;
+      txt += `<span class="emoticon-key" style="vertical-align: middle;">${emoticons[i].key}</span>`;
+      txt += `</li>`;
+    }
+    txt += "</ul>";
+    return txt;
+  } else {
+    return `<ul><li class="suggested-emoticon tooltipList__item disabled" role="listitem" disabled>No Matching Emoticons</li></ul>`;
+  }
+}
+
+function showEmoticonBox(content) {
+  let textarea = getActiveTextArea();
+  let containerId = textarea.attr('id') === '_fileUploadMessage' ?
+    '#emoticon-suggestion-container-upload' : '#emoticon-suggestion-container';
+
+  let container = $(containerId);
+  if (container.length === 0) return;
+
+  container.html(content).show();
+  isDisplayEmoticonBox = true;
+
+  // Highlight first item
+  let firstItem = container.find(".suggested-emoticon:not(.disabled)").first();
+  if (firstItem.length) {
+    firstItem.css("background-color", "#D8F0F9");
+    emoticon_selected_index = 0;
+  }
+
+  container.find(".suggested-emoticon:not(.disabled)").off('click.emoticon').on('click.emoticon', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    let key = $(this).attr("data-emoticon-key");
+    if (key) {
+      insertEmoticon(key);
+    }
+  });
+
+  setEmoticonBoxPosition();
+}
+
+function hideEmoticonBox() {
+  $("#emoticon-suggestion-container").hide();
+  $("#emoticon-suggestion-container-upload").hide();
+  cleanUpEmoticon();
+}
+
+function cleanUpEmoticon() {
+  isDisplayEmoticonBox = false;
+  actived_colon_index = 0;
+  emoticon_is_navigated = false;
+  emoticon_is_inserted = false;
+  emoticon_current_index = 0;
+  emoticon_selected_index = 0;
+  emoticon_is_outbound_of_list = false;
+  $("#emoticon-suggestion-container").html("");
+  $("#emoticon-suggestion-container-upload").html("");
+}
+
+function getNearestColonIndex() {
+  let textarea = getActiveTextArea();
+  let text = textarea.val();
+  let caret = doGetCaretPosition(textarea[0]);
+
+  for (let i = caret - 1; i >= 0; i--) {
+    if (text[i] === ':') {
+      // Accept : at start of string OR if previous char is space/newline
+      if (i === 0 || text[i - 1] === ' ' || text[i - 1] === '\n') {
+        return i;
+      }
+      // If : has other char before it, it's not a valid trigger
+      return -1;
+    }
+    // Stop searching if we hit a space or newline before finding :
+    if (text[i] === ' ' || text[i] === '\n') {
+      break;
+    }
+  }
+  return -1;
+}
+
+function getTypedTextEmoticon() {
+  let textarea = getActiveTextArea();
+  let text = textarea.val();
+  let caret = doGetCaretPosition(textarea[0]);
+  let colonIndex = getNearestColonIndex();
+
+  if (colonIndex >= 0) {
+    return text.substring(colonIndex + 1, caret);
+  }
+  return '';
+}
+
+function filterEmoticonDisplayResults(results) {
+  emoticon_is_outbound_of_list = false;
+  if (!emoticon_is_navigated) return results.slice(0, EMOTICON_DISPLAY_NUMS);
+  if (emoticon_current_index < 0) emoticon_current_index = 0;
+  if (emoticon_current_index >= results.length) emoticon_current_index = results.length - 1;
+
+  if (results.length <= EMOTICON_DISPLAY_NUMS) {
+    emoticon_is_outbound_of_list = true;
+    return results;
+  }
+  if (emoticon_current_index >= results.length - EMOTICON_DISPLAY_NUMS) {
+    emoticon_is_outbound_of_list = true;
+    return results.slice(EMOTICON_DISPLAY_NUMS * -1);
+  } else {
+    return results.slice(emoticon_current_index, emoticon_current_index + EMOTICON_DISPLAY_NUMS);
+  }
+}
+
+function findColon() {
+  let textarea = getActiveTextArea();
+  let colonIndex = getNearestColonIndex();
+
+  if (colonIndex < 0) {
+    hideEmoticonBox();
+    return false;
+  }
+
+  let typedText = getTypedTextEmoticon();
+
+  if (typedText.length > EMOTICON_MAX_PATTERN_LENGTH) {
+    hideEmoticonBox();
+    return false;
+  }
+
+  if (typedText.includes(':')) {
+    hideEmoticonBox();
+    return false;
+  }
+
+  actived_colon_index = colonIndex;
+
+  let allEmoticons = buildEmoticonListData();
+  let searchPattern = typedText.toLowerCase();
+
+  let matchedEmoticons = allEmoticons.filter(emoticon => {
+    // Remove opening and closing colons from emoticon key and search
+    let emoticonKey = emoticon.key.toLowerCase().replace(/^:/, '').replace(/:$/, '');
+    return emoticonKey.includes(searchPattern);
+  });
+
+  // Apply pagination filter
+  let filteredEmoticons = filterEmoticonDisplayResults(matchedEmoticons);
+
+  if (filteredEmoticons.length > 0) {
+    let content = buildEmoticonList(filteredEmoticons);
+    showEmoticonBox(content);
+    return true;
+  } else {
+    hideEmoticonBox();
+    return false;
+  }
+}
+
+function setEmoticonBoxPosition() {
+  let textarea = getActiveTextArea();
+  let containerId = textarea.attr('id') === '_fileUploadMessage' ?
+    '#emoticon-suggestion-container-upload' : '#emoticon-suggestion-container';
+
+  let container = $(containerId);
+  if (!container.is(':visible')) return;
+
+  let chat_text_element = textarea[0];
+  let rect = chat_text_element.getBoundingClientRect();
+  let current_pos = doGetCaretPosition(chat_text_element);
+
+  // Move caret to position after :
+  setCaretPosition(chat_text_element, actived_colon_index + 1);
+  let position = Measurement.caretPos(textarea[0]);
+
+  // Calculate relative position
+  position.top -= rect.top;
+  position.left -= rect.left;
+
+  // Different logic for file upload modal vs main chat
+  if (textarea.attr('id') === '_fileUploadMessage') {
+    // File upload modal: always show BELOW the ( symbol
+    position.top += parseInt(textarea.css("font-size")) + 48;
+
+    // Handle horizontal overflow
+    if (rect.width - position.left < 350) {
+      position.left -= 350;
+    }
+  } else {
+    // Main chat: original logic with above/below detection
+    if (rect.width - position.left < 350) {
+      position.left -= 350;
+    }
+    if (rect.height - position.top < 90) {
+      if (position.top < 108) {
+        $("#_chatTextArea").css({
+          "overflow-y": "visible",
+          "z-index": 2
+        });
+      }
+      position.top -= 118;
+    } else {
+      position.top += parseInt(textarea.css("font-size")) + 5;
+    }
+  }
+
+  container.parent().css({
+    position: "relative"
+  });
+
+  container.css({
+    top: position.top,
+    left: position.left,
+    position: "absolute"
+  });
+
+  // Restore caret position
+  setCaretPosition(chat_text_element, current_pos);
+}
+
+function insertEmoticon(key) {
+  let textarea = getActiveTextArea();
+  let text = textarea.val();
+  let caret = doGetCaretPosition(textarea[0]);
+
+  let colonIndex = actived_colon_index;
+  let beforeText = text.substring(0, colonIndex);
+  let afterText = text.substring(caret);
+
+  let newText = beforeText + key + ' ' + afterText;
+  textarea.val(newText);
+
+  let newCaretPos = colonIndex + key.length + 1;
+  setCaretPosition(textarea[0], newCaretPos);
+
+  hideEmoticonBox();
+  textarea.focus();
+}
+
+function navigateEmoticonList(direction) {
+  let textarea = getActiveTextArea();
+  let containerId = textarea.attr('id') === '_fileUploadMessage' ?
+    '#emoticon-suggestion-container-upload' : '#emoticon-suggestion-container';
+
+  let container = $(containerId);
+  let items = container.find(".suggested-emoticon:not(.disabled)");
+
+  if (items.length === 0) return;
+
+  // Remove highlight from all items
+  items.css("background-color", "");
+
+  if (direction === 'down') {
+    emoticon_selected_index = (emoticon_selected_index + 1) % items.length;
+  } else if (direction === 'up') {
+    emoticon_selected_index = (emoticon_selected_index - 1 + items.length) % items.length;
+  }
+
+  let selectedItem = items.eq(emoticon_selected_index);
+  selectedItem.css("background-color", "#D8F0F9");
+
+  let itemOffset = selectedItem.position().top;
+  let containerHeight = container.height();
+  let scrollTop = container.scrollTop();
+
+  if (itemOffset < 0) {
+    container.scrollTop(scrollTop + itemOffset);
+  } else if (itemOffset + selectedItem.outerHeight() > containerHeight) {
+    container.scrollTop(scrollTop + itemOffset - containerHeight + selectedItem.outerHeight());
+  }
+}
+
+function selectCurrentEmoticon() {
+  let textarea = getActiveTextArea();
+  let containerId = textarea.attr('id') === '_fileUploadMessage' ?
+    '#emoticon-suggestion-container-upload' : '#emoticon-suggestion-container';
+
+  let container = $(containerId);
+  let items = container.find(".suggested-emoticon:not(.disabled)");
+  let selectedItem = items.eq(emoticon_selected_index);
+
+  if (selectedItem.length) {
+    let key = selectedItem.attr("data-emoticon-key");
+    if (key) {
+      insertEmoticon(key);
+    }
+  }
+}
+
+// ============ END EMOTICON FUNCTIONS ============
+
 
 // http://blog.vishalon.net/index.php/javascript-getting-and-setting-caret-position-in-textarea/
 function doGetCaretPosition(ctrl) {
@@ -401,11 +721,14 @@ function bindMentionEvents(textarea) {
   // Remove existing handlers to avoid duplicates
   textarea.off('click.mention keypress.mention keyup.mention keydown.mention');
 
-  textarea.on('click.mention', () => hideMentionBox());
+  textarea.on('click.mention', () => {
+    hideMentionBox();
+    hideEmoticonBox();
+  });
 
-  // Additional prevention for Enter key when mention box is open
+  // Additional prevention for Enter key when mention box or emoticon box is open
   textarea.on("keypress.mention", function(e) {
-    if (e.which == 13 && isDisplayMentionBox) {
+    if (e.which == 13 && (isDisplayMentionBox || isDisplayEmoticonBox)) {
       e.preventDefault();
       e.stopPropagation();
       return false;
@@ -416,13 +739,63 @@ function bindMentionEvents(textarea) {
     if (e.which == 9 || e.which == 13) {
       return;
     }
+
+    // Handle mention navigation
     if ((e.which == 38 || e.which == 40) && isDisplayMentionBox) {
       is_navigated = true;
       holdCaretPosition(e);
-    } else {
+    } else if (!isDisplayEmoticonBox) {
       is_navigated = false;
     }
 
+    // Handle emoticon navigation with scrolling
+    if ((e.which == 38 || e.which == 40) && isDisplayEmoticonBox) {
+      emoticon_is_navigated = true;
+      holdCaretPosition(e);
+
+      // Update current_index for scrolling
+      if (e.which == 38) {
+        emoticon_current_index -= 1;
+      }
+      if (e.which == 40) {
+        emoticon_current_index += 1;
+      }
+
+      // Update selected_index within visible range
+      if (e.which == 38 && emoticon_is_outbound_of_list) {
+        emoticon_selected_index -= 1;
+        if (emoticon_selected_index < 0) {
+          emoticon_selected_index = 0;
+        }
+      }
+      if (e.which == 40 && emoticon_is_outbound_of_list) {
+        emoticon_selected_index += 1;
+        let visibleCount = $(".suggested-emoticon:not(.disabled)").length;
+        if (emoticon_selected_index >= Math.min(EMOTICON_DISPLAY_NUMS, visibleCount)) {
+          emoticon_selected_index = Math.min(EMOTICON_DISPLAY_NUMS, visibleCount) - 1;
+        }
+      }
+
+      // Re-render with updated pagination
+      findColon();
+
+      return; // Don't check for @mention when navigating emoticon
+    } else if (!isDisplayMentionBox) {
+      emoticon_is_navigated = false;
+      emoticon_current_index = 0;
+    }
+
+    // Check for emoticon first (for opening/filtering)
+    if (findColon()) {
+      // Emoticon box is showing
+      if (e.which == 27) {
+        hideEmoticonBox();
+        holdCaretPosition(e);
+      }
+      return; // Don't check for @mention when emoticon is active
+    }
+
+    // Check for @mention
     if (findAtmark()) {
       if (isDisplayMentionBox && getNearestAtmarkIndex() != -1 && getNearestAtmarkIndex() != actived_atmark_index) {
         hideMentionBox();
@@ -480,6 +853,34 @@ function bindMentionEvents(textarea) {
   });
 
   textarea.on("keydown.mention", function(e) {
+    // Handle emoticon box
+    if (isDisplayEmoticonBox) {
+      if (e.which == 38 || e.which == 40) {
+        e.preventDefault();
+        emoticon_is_navigated = true;
+        holdCaretPosition(e);
+
+        // Navigate immediately in keydown
+        if (e.which == 38) {
+          navigateEmoticonList('up');
+        } else if (e.which == 40) {
+          navigateEmoticonList('down');
+        }
+
+        return false;
+      } else if (e.which == 9 || e.which == 13) {
+        e.preventDefault();
+        e.stopPropagation();
+        selectCurrentEmoticon();
+        return false;
+      } else if (e.which == 27) {
+        hideEmoticonBox();
+        holdCaretPosition(e);
+        return false;
+      }
+    }
+
+    // Handle mention box
     if ((e.which == 38 || e.which == 40 || e.which == 9 || e.which == 13) && isDisplayMentionBox) {
       is_navigated = true;
       holdCaretPosition(e);
@@ -520,11 +921,16 @@ function setUpMention() {
 
   let chat_input = chat_text.parent();
 
-  // Remove and create container
+  // Remove and create containers for mention
   $("#suggestion-container").remove();
   $("<div id='suggestion-container' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip'></div>").insertAfter(chat_input);
 
+  // Remove and create containers for emoticon
+  $("#emoticon-suggestion-container").remove();
+  $("<div id='emoticon-suggestion-container' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip' style='max-height: 150px; overflow-y: auto; min-width: 350px;'></div>").insertAfter(chat_input);
+
   hideMentionBox();
+  hideEmoticonBox();
 
   // Bind events
   chat_text.off('.mention');
@@ -535,9 +941,11 @@ function setUpMention() {
     const fileUploadTextarea = $("#_fileUploadMessage");
     if (fileUploadTextarea.length > 0 && !fileUploadTextarea.data('mention-bound')) {
       $("#suggestion-container-upload").remove();
+      $("#emoticon-suggestion-container-upload").remove();
 
       let fileUploadInput = fileUploadTextarea.parent();
       $("<div id='suggestion-container-upload' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip'></div>").insertAfter(fileUploadInput);
+      $("<div id='emoticon-suggestion-container-upload' class='toSelectorTooltip tooltipListWidth tooltip tooltip--white' role='tooltip' style='max-height: 150px; overflow-y: auto; min-width: 350px;'></div>").insertAfter(fileUploadInput);
 
       fileUploadTextarea.data('mention-bound', true);
       bindMentionEvents(fileUploadTextarea);
@@ -634,6 +1042,7 @@ new MutationObserver(function() {
     // Reset and cleanup
     mentionInitialized = false;
     $("#suggestion-container, #suggestion-container-upload").remove();
+    $("#emoticon-suggestion-container, #emoticon-suggestion-container-upload").remove();
 
     if (setupObserver) setupObserver.disconnect();
     if (retryInterval) clearInterval(retryInterval);
@@ -652,13 +1061,16 @@ window.addEventListener('load', function() {
   if (!mentionInitialized) initializeMentionWithRetry();
 });
 
-// Click handlers to hide mention box
+// Click handlers to hide mention box and emoticon box
 $(document).ready(function() {
-  $('#_headerSearch, #_sideContent, #_subContentArea, #_globalHeader, #_roomHeader, #_timeLine').click(hideMentionBox);
+  $('#_headerSearch, #_sideContent, #_subContentArea, #_globalHeader, #_roomHeader, #_timeLine').click(function() {
+    hideMentionBox();
+    hideEmoticonBox();
+  });
 
-  // Prevent form submit when mention box open
+  // Prevent form submit when mention box or emoticon box open
   $(document).on('submit', 'form', function(e) {
-    if (isDisplayMentionBox) {
+    if (isDisplayMentionBox || isDisplayEmoticonBox) {
       e.preventDefault();
       e.stopPropagation();
       return false;

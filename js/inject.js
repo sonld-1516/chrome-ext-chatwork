@@ -111,8 +111,8 @@ function addInjectedScript() {
   setTimeout(() => {
     CWPlusInjectScript('js/emoticon.js');
     CWPlusInjectScript('js/insertTag.js');
+    CWPlusInjectScript('js/mention.js');
   }, 200)
-  CWPlusInjectScript('js/mention.js');
 }
 
 function getData(info) {
