@@ -1,3 +1,34 @@
+// SVG icon generators
+function createTitleIconSVG(color = 'rgb(42, 71, 127)', size = 19) {
+  return `
+    <svg class="cwplus-title-icon" viewBox="0 0 24 24" style="width: ${size}px; height: ${size}px; display: inline-block; vertical-align: middle; cursor: pointer; margin-bottom: 3px;">
+      <line x1="5" y1="8" x2="19" y2="8" stroke="${color}" stroke-width="2.3" stroke-linecap="round"/>
+      <line x1="5" y1="12" x2="15" y2="12" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+      <line x1="5" y1="16" x2="17" y2="16" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  `.trim();
+}
+
+function createInfoIconSVG(color = 'rgb(42, 71, 127)', size = 19) {
+  return `
+    <svg class="cwplus-info-icon" viewBox="0 0 24 24" style="width: ${size}px; height: ${size}px; display: inline-block; vertical-align: middle; cursor: pointer; margin-bottom: 3px;">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="${color}" stroke-width="2"/>
+      <circle cx="12" cy="8" r="1.5" fill="${color}"/>
+      <line x1="12" y1="11" x2="12" y2="17" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  `.trim();
+}
+
+function createCodeIconSVG(color = 'rgb(42, 71, 127)', size = 23) {
+  return `
+    <svg class="cwplus-code-icon" viewBox="0 0 24 24" style="width: ${size}px; height: ${size}px; display: inline-block; vertical-align: middle; cursor: pointer;">
+      <rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="${color}" stroke-width="1.8"/>
+      <polyline points="8,10 10,12 8,14" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="12" y1="14" x2="16" y2="14" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  `.trim();
+}
+
 var info_tag = {
   id: "infoTag",
   class: "sc-gmgFlS CWPlus__tag-button _showDescription",
@@ -5,7 +36,7 @@ var info_tag = {
     "role": "button",
     "aria-label": "Add info tag"
   },
-  html: "<strong>[info]</strong>"
+  html: createInfoIconSVG()
 };
 
 var code_tag = {
@@ -15,7 +46,10 @@ var code_tag = {
     "role": "button",
     "aria-label": "Add code tag"
   },
-  html: "<strong>[code]</strong>"
+  css: {
+    "margin-bottom": "3px"
+  },
+  html: createCodeIconSVG()
 };
 
 var title_tag = {
@@ -25,7 +59,7 @@ var title_tag = {
     "role": "button",
     "aria-label": "Add title tag"
   },
-  html: "<strong>[title]</strong>"
+  html: createTitleIconSVG()
 }
 
 function isTagAdded() {
@@ -33,19 +67,16 @@ function isTagAdded() {
 }
 
 function createTagButtons() {
-  console.log('Creating tag buttons...');
 
   var chat_send_tool = $("#_chatSendArea ul").first();
 
   if (chat_send_tool.length === 0) {
-    console.log('Chat send area not found, retrying...');
     setTimeout(createTagButtons, 1000);
     return;
   }
 
   // Check if buttons already exist to prevent duplicates
   if (isTagAdded()) {
-    console.log('Tag buttons already exist, skipping creation');
     return;
   }
 
@@ -57,7 +88,6 @@ function createTagButtons() {
   chat_send_tool.append($("<button>", info_tag)); // Add info button tag
   chat_send_tool.append($("<button>", code_tag)); // Add code button tag
 
-  console.log('Tag buttons created successfully');
 }
 
 $(document).ready(function() {
@@ -75,7 +105,6 @@ $(document).ready(function() {
       window.tagButtonCheckTimeout = setTimeout(function() {
         // Only recreate if buttons are actually missing
         if (!isTagAdded()) {
-          console.log('Tag buttons disappeared, recreating...');
           createTagButtons();
         }
       }, 1000); // Wait 1 second before checking
@@ -98,7 +127,6 @@ $(document).ready(function() {
     e.stopPropagation();
     if ($(this).hasClass('processing')) return; // Prevent duplicate clicks
     $(this).addClass('processing');
-    console.log('Info tag clicked');
     setSuggestedChatTag("info");
     setTimeout(() => $(this).removeClass('processing'), 500); // Remove processing flag after 500ms
   });
@@ -108,7 +136,6 @@ $(document).ready(function() {
     e.stopPropagation();
     if ($(this).hasClass('processing')) return; // Prevent duplicate clicks
     $(this).addClass('processing');
-    console.log('Title tag clicked');
     setSuggestedChatTag("title");
     setTimeout(() => $(this).removeClass('processing'), 500); // Remove processing flag after 500ms
   });
@@ -118,7 +145,6 @@ $(document).ready(function() {
     e.stopPropagation();
     if ($(this).hasClass('processing')) return; // Prevent duplicate clicks
     $(this).addClass('processing');
-    console.log('Code tag clicked');
     setSuggestedChatTag("code");
     setTimeout(() => $(this).removeClass('processing'), 500); // Remove processing flag after 500ms
   });
@@ -126,7 +152,6 @@ $(document).ready(function() {
   function setSuggestedChatTag(type) {
     // Prevent rapid successive calls
     if (window.tagInsertionInProgress) {
-      console.log('Tag insertion already in progress, skipping...');
       return;
     }
 
@@ -135,7 +160,6 @@ $(document).ready(function() {
     try {
       var chat_text = $("#_chatText");
       if (chat_text.length === 0) {
-        console.log('Chat text area not found');
         return;
       }
 
@@ -158,7 +182,6 @@ $(document).ready(function() {
       }
 
       chat_text.focus();
-      console.log(`Successfully inserted ${type} tag`);
     } catch (error) {
       console.error('Error inserting tag:', error);
     } finally {
@@ -177,15 +200,12 @@ $(document).ready(function() {
 function ensureTagButtons() {
   // Prevent multiple intervals
   if (window.tagButtonInterval) {
-    console.log('Tag button monitoring already active');
     return;
   }
 
-  console.log('Starting tag button monitoring...');
   window.tagButtonInterval = setInterval(function() {
     // Only check if buttons are missing, don't recreate unnecessarily
     if (!isTagAdded()) {
-      console.log('Tag buttons missing during interval check, recreating...');
       createTagButtons();
     }
   }, 10000); // Check every 10 seconds (less frequent than before)
@@ -193,7 +213,6 @@ function ensureTagButtons() {
 
 // Function to reset tag button monitoring
 function resetTagButtons() {
-  console.log('Resetting tag button monitoring...');
 
   if (window.tagButtonInterval) {
     clearInterval(window.tagButtonInterval);
@@ -217,5 +236,4 @@ function resetTagButtons() {
   // Remove event handlers
   $("body").off("click.cwPlusTagButtons", "#infoTag, #titleTag, #codeTag");
 
-  console.log('Tag button monitoring reset complete');
 }

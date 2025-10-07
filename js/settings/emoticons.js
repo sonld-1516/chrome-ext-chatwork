@@ -787,10 +787,6 @@ var emoticon_settings = [
         src: "https://s.yimg.com/lq/i/mesg/emoticons7/7.gif",
       },
       {
-        key: ":x",
-        src: "https://s.yimg.com/lq/i/mesg/emoticons7/8.gif",
-      },
-      {
         key: ":P",
         src: "https://s.yimg.com/lq/i/mesg/emoticons7/10.gif",
       },
@@ -1628,16 +1624,32 @@ var emoticon_settings = [
     data_version: 2019030401,
     emoticons: [
     {
+      "key": ":shake_no:",
+      "src": "https://emoji.slack-edge.com/T028JVBUY4F/shake_no/3845da83c8760fc8.gif"
+    },
+    {
+      "key": ":ok11:",
+      "src": "https://emoji.slack-edge.com/T028JVBUY4F/ok11/6dabf04eed1be4d7.gif"
+    },
+    {
+      "key": ":hyper:",
+      "src": "https://emoji.slack-edge.com/T028JVBUY4F/hyper/0904974452a8c1ac.gif"
+    },
+    {
+      "key": ":cxy-like:",
+      "src": "https://emoji.slack-edge.com/T028JVBUY4F/cxy-like/2a4a6f31b12f1421.png"
+    },
+    {
+      "key": ":_pepe-xien:",
+      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe-xien/8ecf746b04f63b1d.gif"
+    },
+    {
+      "key": ":xin:",
+      "src": "https://emoji.slack-edge.com/T028JVBUY4F/xin/f8d9e9b1b2f6c2cb.gif"
+    },
+    {
       "key": ":kha-banh:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/_kha-banh-lieu-co-phai-ong-to-dieu-mua-quat-khien-bao-dua-tre-hoc-theo/ef095a24ab89e754.png"
-    },
-    {
-      "key": ":_pepe-cry:",
-      "src": "https://emojis.slackmojis.com/emojis/images/1721241738/94873/pepe-cry.gif?1721241738"
-    },
-    {
-      "key": ":_pepe_rain:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe_rain/a0a774cad80da33f.gif"
     },
     {
       "key": ":_pepe:",
@@ -1660,16 +1672,8 @@ var emoticon_settings = [
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe_tintaobanmaykhong/0a7da38b702b75df.png"
     },
     {
-      "key": ":_pepe-quay:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe-quay/12a557dd2cbee5be.gif"
-    },
-    {
       "key": ":_pepeslide:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepeslide/b5ecee73b577ec58.gif"
-    },
-    {
-      "key": ":_pepe_hehe:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe_hehe/17550b02223975bf.gif"
     },
     {
       "key": ":_pepe-quay:",
@@ -1700,14 +1704,6 @@ var emoticon_settings = [
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe_dab/c57cd1d2860e200d.png"
     },
     {
-      "key": ":_pepe-gun:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe-gun/3bf813b8f9dab6c8.jpg"
-    },
-    {
-      "key": ":_pepe_hmm:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe_hmm/fa4982b1a31aba58.gif"
-    },
-    {
       "key": ":_pepe_dafuq:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/_pepe_dafuq/ff6a21439df0efbc.png"
     },
@@ -1730,14 +1726,6 @@ var emoticon_settings = [
     {
       "key": ":sad_pepe:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/sad_pepe/1963a68015cd53cf.png"
-    },
-    {
-      "key": ":_pepe_keke:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe_keke/5deb383a4b3aba3e.png"
-    },
-    {
-      "key": ":_pepe_knife:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/pepe_knife/93e37683a10ce414.png"
     },
     {
       "key": ":_pepe-amphu:",
@@ -1766,10 +1754,6 @@ var emoticon_settings = [
     {
       "key": ":_pepe_uc:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/_pepe_uc/a9bb57a778e49c92.gif"
-    },
-    {
-      "key": ":_pepe-10:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/_pepe-10/97d0552e1ed5ac30.gif"
     },
     {
       "key": ":_pepe-cryy-n1:",
@@ -2008,10 +1992,6 @@ var emoticon_settings = [
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/___/0b01e12c28ae3a6e.png"
     },
     {
-      "key": ":____ok:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/____ok/a4990081fdc11966.jpg"
-    },
-    {
       "key": ":___ok:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/___ok/22e3f96f7319cd53.jpg"
     },
@@ -2160,10 +2140,6 @@ var emoticon_settings = [
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/_13886995_542987289206760_6140680621604432449_n/e75ecd605199ff6b.jpg"
     },
     {
-      "key": ":_19575394_872212499609986_2757644357764698881_o:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/_19575394_872212499609986_2757644357764698881_o/d92f924830604f97.jpg"
-    },
-    {
       "key": ":_1d9f6ce0d7f2ca73:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/_1d9f6ce0d7f2ca73/eff4010633adaa0a.png"
     },
@@ -2196,15 +2172,7 @@ var emoticon_settings = [
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/_200/ed83da3b79a547c2.png"
     },
     {
-      "key": ":_2021-01-04_130426:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/_2021-01-04_130426/f1db1c5822243d86.png"
-    },
-    {
-      "key": ":_20211211_003235:",
-      "src": "https://emoji.slack-edge.com/T028JVBUY4F/_20211211_003235/0dff5ed3dfe4b352.jpg"
-    },
-    {
-      "key": ":_2022-05-16_08h56_57:",
+      "key": ":xinh:",
       "src": "https://emoji.slack-edge.com/T028JVBUY4F/_2022-05-16_08h56_57/ce45d54ea9ea54f7.png"
     },
     {

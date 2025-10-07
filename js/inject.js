@@ -1,5 +1,5 @@
 var delayTime = 5000;
-var CW_PLUS_VERSION = '2.1.2';
+var CW_PLUS_VERSION = '3.1.0';
 
 function CWPlusInjectScript(src) {
   let script = document.createElement('script');

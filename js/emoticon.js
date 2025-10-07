@@ -282,7 +282,7 @@ function addStyle() {
   $("<style type=\"text/css\"> .messageBadge{vertical-align: middle !important;};</style>").appendTo("head");
   $("<style type=\"text/css\"> .timelineLinkTrim{vertical-align: middle !important;};</style>").appendTo("head");
   $("<style type=\"text/css\"> img.ui_emoticon {vertical-align: middle !important;}</style>").appendTo("head");
-  $("<style type=\"text/css\"> img.ui_emoticon:not([src^='https://assets.chatwork']) {width: auto !important;height: auto !important; vertical-align: middle;}</style>").appendTo("head");
+  $("<style type=\"text/css\"> img.ui_emoticon:not([src^='https://assets.chatwork']) {width: auto !important;height: auto !important; vertical-align: middle;max-width: 60px !important;}</style>").appendTo("head");
   $("<style type=\"text/css\"> div[data-cwtag]:not([data-cwtag='']) {width: auto !important;height: auto !important; vertical-align: middle;}</style>").appendTo("head");
 
   // Add hover styles for emoji icon
@@ -715,6 +715,9 @@ function ensureFooterExists() {
   }
 }
 
+// Flag to track if tab buttons have been created and bound (outside function scope)
+let tabButtonsBound = false;
+
 function bindEmoticonEvents(arrayDataName, arrayData, u, hint) {
   // Remove existing events first to prevent duplicates
   $("body").off("click", "#externalEmoticonsButton");
@@ -731,67 +734,78 @@ function bindEmoticonEvents(arrayDataName, arrayData, u, hint) {
 
       u.open($(e.currentTarget));
 
-      // Clear existing emoticons and add new ones
-      $("#_emoticonGalleryTab li").remove();
+      // Cache selectors for better performance
+      const externalList = $("#_externalEmoticonList");
+      const tabContainer = externalList.find("#tabEmotionBig");
+      const emoticonGallery = externalList.find("#_emoticonGalleryTab");
 
-      if (arrayData && arrayData[0]) {
-        // Use jQuery each for better compatibility
-        $.each(arrayData[0], function(index, item) {
-          $("#_externalEmoticonList #_emoticonGalleryTab").append(item);
+      // Create tab buttons if they don't exist yet (only once)
+      if (tabContainer.length > 0 && tabContainer.children().length === 0) {
+        // Create all buttons in memory first using DocumentFragment for better performance
+        const buttons = arrayDataName.map((item, index) => {
+          return $("<button>", {
+              id: `tabEmotion${index}`,
+              class: "w3-bar-item w3-button w3-emotion",
+              css: {
+                "display": "inline-block",
+                "text-align": "center",
+                "min-width": "80px",
+                "height": "30px",
+                "border": "1px solid #ccc",
+                "cursor": "pointer",
+                "margin": "0px 2px",
+                "border-radius": "5px",
+                "font-size": "10px",
+                "background-color": "white",
+                "white-space": "nowrap",
+                "overflow": "hidden",
+                "text-overflow": "ellipsis"
+              }
+          }).append(item);
         });
+
+        // Append all at once to minimize reflows
+        tabContainer.append(buttons);
+
+        // Bind tab button click events only once
+        if (!tabButtonsBound) {
+          tabContainer.on("click", "button", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Find which tab was clicked
+            const tabIndex = this.id.replace('tabEmotion', '');
+
+            if (arrayData[tabIndex]) {
+              // Clear and add new emoticons efficiently
+              emoticonGallery.empty().append(arrayData[tabIndex]);
+
+              // Update tab styling efficiently
+              tabContainer.find("button").css("background-color", "white");
+              $(this).css("background-color", "#eaeae8");
+
+              // Rebind events after adding new items
+              bindEmoticonItemEvents(hint, u);
+            }
+          });
+          tabButtonsBound = true;
+        }
       }
 
-      // Set tab styling
-      $("#_externalEmoticonList #tabEmotionBig button").css("background-color", "white");
-      $("#tabEmotion0").css("background-color", "#eaeae8");
+      // Clear existing emoticons and add new ones efficiently
+      emoticonGallery.empty();
 
-      // Ensure events are bound after adding items
-      setTimeout(() => {
-        bindEmoticonItemEvents(hint, u);
-      }, 100);
-  });
+      if (arrayData && arrayData[0]) {
+        emoticonGallery.append(arrayData[0]);
+      }
 
-  // Ensure tab buttons exist
-  arrayDataName.forEach((item, index) => {
-    if ($(`#tabEmotion${index}`).length > 0) return;
+      // Set tab styling efficiently
+      const tabButtons = tabContainer.find("button");
+      tabButtons.css("background-color", "white");
+      tabButtons.first().css("background-color", "#eaeae8");
 
-    $("#_externalEmoticonList #tabEmotionBig").append($("<button>", {
-        id: `tabEmotion${index}`,
-        class: "w3-bar-item w3-button w3-emotion"
-    }).append(item));
-  });
-
-  // Use event delegation for tab buttons
-  $("#_externalEmoticonList").off("click", "#tabEmotionBig button").on("click", "#tabEmotionBig button", function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Find which tab was clicked
-    const buttonId = $(this).attr('id');
-    const tabIndex = buttonId.replace('tabEmotion', '');
-
-    if (arrayData[tabIndex]) {
-      $("#_emoticonGalleryTab li").remove();
-
-      // Use jQuery each for better compatibility
-      $.each(arrayData[tabIndex], function(index, item) {
-        $("#_externalEmoticonList #_emoticonGalleryTab").append(item);
-      });
-
-      // Update tab styling
-      $("#_externalEmoticonList #tabEmotionBig button").css("background-color", "white");
-      $(this).css("background-color", "#eaeae8");
-
-      // Rebind events after adding new items
-      setTimeout(() => {
-        bindEmoticonItemEvents(hint, u);
-      }, 100);
-    }
-  });
-
-  // Remove the old individual event handlers
-  arrayDataName.forEach((item, index) => {
-    $(`#tabEmotion${index}`).off("click");
+      // Bind emoticon item events
+      bindEmoticonItemEvents(hint, u);
   });
 
   // Initial binding for emoticon items
