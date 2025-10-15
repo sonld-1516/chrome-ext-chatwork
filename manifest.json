@@ -45,7 +45,7 @@
         "js/settings/emoticons.js",
         "js/lib/fuse.min.js",
         "js/helpers/storage.js",
-        // "js/mention.js",
+        "js/mention.js",
         "js/emoticon.js",
         "js/insertTag.js"
       ],
